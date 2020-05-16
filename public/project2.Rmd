@@ -1,0 +1,216 @@
+---
+title: "SDS348 Project 2"
+author: "Joshua Garcia"
+date: "5/3/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This dataset contains information about 303 patients and is focused on conditions of the heart. The variables analyzed were age, sex (1=male, 2=female), cp(chest pain, 0=asymptomatic, 1=atypical angina, 2=non-anginal pain, 3=typical angina), fbs (fasting blood sugar, 1= >120 mg/dl, 0= <120mg/dl), restecg (resting electrocardiographic results, 0=left ventricular hypertrophy, 1=normal, 2=ST-T wave abnormality), exang (exercised enduced angina, 1=yes, 0=no), and finally, target (1=disease, 0=no disease). I altered the dataset some before analysis, first switching the 1 and 0 values of target, as 1 initially corresponded to 'no disease', which is counterintuitive. I then removed several variables I found difficult to understand.
+
+```{R}
+library(tidyverse)
+heart = read.csv("heart.csv")
+heart <- heart %>%
+      mutate(target = ifelse(target == 1,0,1))
+heart$age <- heart$ï..age
+heart$ï..age <- NULL
+heart$oldpeak <- NULL
+heart$slope <- NULL
+heart$ca <- NULL
+heart$thal <- NULL
+heart$sex <- as.factor(heart$sex)
+heart$cp <- as.factor(heart$cp)
+heart$fbs <- as.factor(heart$fbs)
+heart$restecg <- as.factor(heart$restecg)
+heart$exang <- as.factor(heart$exang)
+heart$target <- as.factor(heart$target)
+glimpse(heart)
+```
+
+## MANOVA Testing
+
+First, I perform a MANOVA test to see if any of my numeric variables (age, trestbps, chol, thalach) differ by a patient's resting electrocardiographic results. This test showed that at least one variable showed a significant difference, so I followed up with 4 ANOVA tests. I used an alpha value of .01 to determine significance of these tests, as I had done 5 tests up to this point. Based on this alpha value, only cholesterol had a significant difference between groups. I then followed up with post-hoc t-test analysis of cholesterol based on restecg group. Using an alpha value of 0.00625, as I had run 8 tests at this point, there was a significant difference between the 0 and 1 groups of restecg, corresponding to left ventricular hypertrophy and normal, respectively. Without bonferroni adjustment, the probability of a type I error would have been 33.66%. MANOVA testing has many assumptions to meet, so it is unlikely that all were met.  
+
+```{R}
+man<-manova(cbind(age,trestbps,chol,thalach)~restecg, data=heart)
+summary(man)
+
+anova <- aov(man)
+summary(anova)
+.05/5
+
+pairwise.t.test(heart$chol, heart$restecg, p.adj='none')
+.05/8
+
+1-(.95^8)
+
+```
+
+##Randomization Test
+
+Here I ran a Monte Carlo sampling test to assess the association between 'chol' and 'target.' The null hypothesis for the test is that cholesterol levels are the same in patients regardless of presence of heart disease; the alternative hypothesis is that cholesterol levels are different between the two groups. The determined p-value from the randomization test was 0.136, so the null hypothesis could not be rejected. This means that cholesterol level was the same between the disease and no disease groups, which was an unexpected result. 
+
+```{R}
+heart %>% group_by(target) %>% summarize(mean=mean(chol)) %>% summarize(meandiff = diff(mean))
+randtest <- vector()
+
+for (i in 1:5000){
+  new <- data.frame(chol=sample(heart$chol), target = heart$target)
+  randtest[i] <- mean(new[new$target == 1,]$chol)-mean(new[new$target == 0,]$chol)
+}
+
+mean(randtest>8.857)*2 #pvalue
+hist(randtest,main="",ylab=""); abline(v = -8.857,col="red") #nulldistribution
+
+```
+
+## Linear Regression
+
+Here, I ran a linear regression predicting resting systolic blood pressure based on patient age and presence of heart disease, including interaction. The intercept for the model(130.1724) is the resting blood pressure when the patient does not have heart disease and is the mean age. The target 1 coefficient means that the mean resting blood pressure for a patient with heart disease is 2.9628 mmHg higher than a patient without. The centage coefficient means that the average resting blood pressure increases by 0.4651 mmHg for each one year increase in age. The coefficient for target1:centage means that for a patient with heart disease, there is an additional resting BP increase of 0.1001 mmHg for each year of age. Based on the scatterplot, shapiro-wilk test, and breusch pagan test, it appears that the violations of linearity, normality, and heteroskedasticity were all violated. I then used robust standard errors to check regression results. Based on this, age had a significant effect on resting blood pressure, but interestingly, presence of heart disease did not. The interaction between the two predictors was also insignificant. The significance results between the initial regression summary and the robust standard errors summary were the same. The proportion of variance in resting blood pressure explained by this model is 0.0765.
+
+```{R}
+library(sandwich)
+library(lmtest)
+heart$centage <- heart$age-mean(heart$age) #centerdata
+
+fit <- lm(trestbps~target*centage, data=heart)#linearregression
+summary(fit)
+
+ggplot(heart, aes(x=centage, y=trestbps,group=target))+
+  geom_point(aes(color=target))+geom_smooth(method='lm',se=F,aes(color=target)) #plotregression
+
+resids <- fit$residuals
+fitvals <- fit$fitted.values
+
+shapiro.test(resids) #testnormality
+bptest(fit)#testhomoskedasticity
+
+coeftest(fit, vcov=vcovHC(fit))#robustse
+
+
+```
+
+## Bootstrap Standard Errors
+
+There is very little change in standard errors when using bootstrap versus the the original standard errors and robust standard errors, so it is unlikely that the p-values would be altered enough to change the significance of the results. 
+
+```{R}
+set.seed(1234)
+
+resids_resamp<-replicate(5000, {
+new_resids<-sample(resids,replace=T)
+heart$new_y <- fitvals+new_resids
+fit2<-lm(new_y ~ target * centage, data=heart)
+coef(fit2)
+})
+
+resids_resamp%>%t%>%as.data.frame%>%summarize_all(sd)
+```
+
+## Logistic Regression
+
+In this part of the analysis, I ran a logistic regression to assess whether patient disease group (target) could be predicted by cholesterol level (chol) and maximum heart rate achieved (thalach). When controlling for maximum heart rate achieved, for every one unit that cholesterol increases by, the odds of heart disease increase by e^0.0038. When controlling for cholesterol, for every one unit increase in maximum heart rate achieved, the odds of heart disease decrease by e^-0.0443. I then created a confusion matrix to determine how well the model worked. Based on the confusion matrix, accuracy was 0.703, sensitivity was 0.594, specificity was 0.794, and precision was 0.707. Overall these values are decent, but definitely not great. *I would like to note here that I spent a good amount of time attempting to generate a ROC curve but could not get it to work. I left the code anyways!* I then performed 10-fold cross-validation on the model, which showed an accuracy of 0.703, sensitivity of 0.588, and recall of 0.701.
+
+```{R}
+logfit <- glm(target~chol+thalach, family=binomial, data=heart) #logisticregression
+coeftest(logfit)
+
+probs <- predict(logfit, type='response')
+conf <- table(predict=as.numeric(probs>.5),truth=heart$target)%>%addmargins #confusionmatrix
+conf
+82/138 #TPR/Sensitivity
+131/165 #TNR/Specificity
+82/116 #PPV/Precision
+213/303 #Accuracy
+
+heart$logit<-predict(logfit,type="link")
+heart%>%ggplot()+geom_density(aes(logit,color=target,fill=target),alpha=0.4) #densityplot
+
+library(plotROC)
+heart <- heart %>% mutate(prob=predict(logfit,type='response'))
+ROCplot <- ggplot(heart)+geom_roc(aes(d=target,m=prob), n.cuts=0)
+ROCplot
+calc_auc(ROCplot)
+
+
+class_diag <- function(probs,truth){
+#CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+acc=sum(diag(tab))/sum(tab)
+sens=tab[2,2]/colSums(tab)[2]
+spec=tab[1,1]/colSums(tab)[1]
+ppv=tab[2,2]/rowSums(tab)[2]
+if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+#CALCULATE EXACT AUC
+ord<-order(probs, decreasing=TRUE)
+probs <- probs[ord]; truth <- truth[ord]
+TPR=cumsum(truth)/max(1,sum(truth))
+FPR=cumsum(!truth)/max(1,sum(!truth))
+dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+n <- length(TPR)
+auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+data.frame(acc,sens,spec,ppv,auc)
+} 
+
+set.seed(1234)
+k=10
+data<-heart[sample(nrow(heart)),] 
+folds<-cut(seq(1:nrow(heart)),breaks=k,labels=F) #create folds
+diags<-NULL
+for(i in 1:k){
+train<-data[folds!=i,]
+test<-data[folds==i,]
+truth<-test$target 
+fit2<-glm(target~chol+thalach,data=train,family="binomial")
+probs2<-predict(fit2,newdata = test,type="response")
+diags<-rbind(diags,class_diag(probs2,truth))
+}
+summarize_all(diags,mean)
+
+
+```
+
+
+
+## Lasso Regression
+
+Finally, I ran a Lasso Regression to predict 'target.' The variables that were retained after regression were age, sex, cp, trestbps, restecg, and exang (meaning chol, fbs, and thalach were dropped). I then ran another 10-fold cross validation with only these variables to predict target. This resulted in an accuracy of 0.772 and auc of 0.852, which shows that this model worked quite a bit better at prediciting whether or not a patient had heart disease than the first 10-fold CV using only chol and thalach. 
+
+```{R}
+library(glmnet)
+y <- as.matrix(heart$target)
+x <- model.matrix(target~., data=heart)[,-1]
+x <- scale(x)
+
+cv <- cv.glmnet(x,y,family='binomial')
+lasso <- glmnet(x,y,family='binomial',lambda=cv$lambda.1se)
+coef(lasso)
+
+set.seed(1234)
+k=10
+data<-heart[sample(nrow(heart)),] 
+folds<-cut(seq(1:nrow(heart)),breaks=k,labels=F) #create folds
+diags<-NULL
+for(i in 1:k){
+train<-data[folds!=i,]
+test<-data[folds==i,]
+truth<-test$target 
+fit2<-glm(target~age+sex+cp+trestbps+restecg+exang,data=train,family="binomial")
+probs2<-predict(fit2,newdata = test,type="response")
+diags<-rbind(diags,class_diag(probs2,truth))
+}
+summarize_all(diags,mean)
+
+
+
+
+```

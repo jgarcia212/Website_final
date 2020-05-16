@@ -1,0 +1,177 @@
+---
+title: "SDS348 Project 1"
+author: "Joshua Garcia"
+date: "3/18/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The two datasets I chose are “country_lit” and “country_MFI,” both of which were found on Kaggle. Country_MFI contains infant mortality rate, fertility rate, and national income per capita for every country over the years 1970-2013. It also has the region of each country. Country_lit contains the literacy rates of every country, as well as the percentage of their economy accounted for by agriculture.</p>
+<p>Part of the reason I decided to examine these datasets was to see which parts of the world were the most in the early phases of development. I wanted to explore the associations between the variables of each dataset. I expect to see variables like income per capita and literacy rate to be negatively associated with infant mortality, fertility, and agriculture, factors which are indicative of a developing country.</p>
+<pre class="r"><code>library(tidyverse)
+library(&quot;readxl&quot;)
+country_lit &lt;- read_excel(&quot;Project1_literacy.xlsx&quot;)
+country_MFI &lt;- read_excel(&quot;Project1_MFI.xlsx&quot;)</code></pre>
+</div>
+<div id="tidying-the-data" class="section level2">
+<h2>Tidying the Data</h2>
+<p>In the code below, I tidy the dataset country_MFI. First, I pivot the columns that included year and which stat it was measuring into one column, which I then separate into year and stat. Then, I pivot wider so that each stat has its own column. Finally, I take the mean of each country’s data across all years, so that there would only be one observation for each country, as it is the joining variable. The name of the new dataset is MFI_tidy. As shown by glimpse, this dataset ended with 217 observations (each country) of five variables, three of which are numeric.</p>
+<pre class="r"><code>MFI &lt;- country_MFI %&gt;% pivot_longer(3:143, names_to=&quot;year&quot;, values_to = &quot;rate&quot;) %&gt;% separate(&quot;year&quot;, into=c(&quot;stat&quot;,&quot;Year&quot;), sep=1) %&gt;% pivot_wider(names_from=&quot;stat&quot;, values_from=&quot;rate&quot;) %&gt;% rename(&quot;Infant_Mortality_Rate&quot; = m, &quot;Fertility_Rate&quot; = f, &quot;National_Income_per_Capita&quot; = i)
+
+MFI_tidy &lt;- MFI %&gt;% group_by(Country, Region) %&gt;% summarize(Infant_Mortality_Rate = mean(Infant_Mortality_Rate, na.rm=T), Fertility_Rate=mean(Fertility_Rate, na.rm=T), National_Income_per_Capita=mean(National_Income_per_Capita, na.rm=T))
+
+glimpse(MFI_tidy)</code></pre>
+<pre><code>## Rows: 217
+## Columns: 5
+## Groups: Country [217]
+## $ Country                    &lt;chr&gt; &quot;Afghanistan&quot;, &quot;Albania&quot;, &quot;Algeria&quot;, &quot;Am...
+## $ Region                     &lt;chr&gt; &quot;South Asia&quot;, &quot;Europe &amp; Central Asia&quot;, &quot;...
+## $ Infant_Mortality_Rate      &lt;dbl&gt; 118.465957, 30.692308, 59.244681, NaN, 4...
+## $ Fertility_Rate             &lt;dbl&gt; 7.011851, 2.821511, 4.574447, NaN, 1.226...
+## $ National_Income_per_Capita &lt;dbl&gt; 293.5946, 1807.8806, 1937.2568, NaN, NaN...</code></pre>
+</div>
+<div id="joining-the-datasets" class="section level2">
+<h2>Joining the Datasets</h2>
+<p>The dataset country_lit did not require tidying, so the two datasets were ready to be joined at this point. I used inner join so that only countries found in both datasets would be put into the new dataset, avoiding a lot of empty data. Then, to figure out how many observations were dropped from each dataset, I used anti join. From MFI_tidy, data for 39 countries was dropped. From country_lit, data for 49 countries was dropped. My final joined dataset had 178 observations, each a different country, and included 6 variables for each country: region, infant mortality rate, fertility rate, income per capita, literacy rate, and proportion of how much the country’s economy was taken by the agriculture sector.</p>
+<pre class="r"><code>Country_join &lt;- MFI_tidy %&gt;% inner_join(country_lit, by=&quot;Country&quot;)
+glimpse(Country_join)</code></pre>
+<pre><code>## Rows: 178
+## Columns: 7
+## Groups: Country [178]
+## $ Country                    &lt;chr&gt; &quot;Afghanistan&quot;, &quot;Albania&quot;, &quot;Algeria&quot;, &quot;Am...
+## $ Region                     &lt;chr&gt; &quot;South Asia&quot;, &quot;Europe &amp; Central Asia&quot;, &quot;...
+## $ Infant_Mortality_Rate      &lt;dbl&gt; 118.465957, 30.692308, 59.244681, NaN, 4...
+## $ Fertility_Rate             &lt;dbl&gt; 7.011851, 2.821511, 4.574447, NaN, 1.226...
+## $ National_Income_per_Capita &lt;dbl&gt; 293.5946, 1807.8806, 1937.2568, NaN, NaN...
+## $ `Literacy (%)`             &lt;dbl&gt; 36.0, 86.5, 70.0, 97.0, 100.0, 42.0, 89....
+## $ Agriculture                &lt;dbl&gt; 0.380, 0.232, 0.101, NA, NA, 0.096, 0.03...</code></pre>
+<pre class="r"><code>MFI_tidy %&gt;% anti_join(Country_join, by=&quot;Country&quot;)</code></pre>
+<pre><code>## # A tibble: 39 x 5
+## # Groups:   Country [39]
+##    Country      Region       Infant_Mortality~ Fertility_Rate National_Income_p~
+##    &lt;chr&gt;        &lt;chr&gt;                    &lt;dbl&gt;          &lt;dbl&gt;              &lt;dbl&gt;
+##  1 Bosnia and ~ Europe &amp; Ce~             11.1            1.80              2735.
+##  2 British Vir~ Latin Ameri~            NaN            NaN                  NaN 
+##  3 Brunei Daru~ East Asia &amp;~              9.76           3.15             18607.
+##  4 Cabo Verde   Sub-Saharan~             48.4            4.73              1334.
+##  5 Central Afr~ Sub-Saharan~            113.             5.63               319.
+##  6 Channel Isl~ Europe &amp; Ce~            NaN              1.50               NaN 
+##  7 Congo, Rep.  Sub-Saharan~             63.3            5.48               395.
+##  8 Curacao      Latin Ameri~            NaN              2.05               NaN 
+##  9 Egypt, Arab~ Middle East~             70.0            4.36              1012.
+## 10 Hong Kong S~ East Asia &amp;~            NaN              1.59              5330.
+## # ... with 29 more rows</code></pre>
+<pre class="r"><code>country_lit %&gt;% anti_join(Country_join, by=&quot;Country&quot;)</code></pre>
+<pre><code>## # A tibble: 49 x 3
+##    Country              `Literacy (%)` Agriculture
+##    &lt;chr&gt;                         &lt;dbl&gt;       &lt;dbl&gt;
+##  1 Anguilla                       95         0.04 
+##  2 Bosnia &amp; Herzegovina           NA         0.142
+##  3 British Virgin Is.             97.8       0.018
+##  4 Brunei                         93.9       0.036
+##  5 Burma                          85.3       0.564
+##  6 Cape Verde                     76.6       0.121
+##  7 Central African Rep.           51         0.55 
+##  8 Congo, Repub. of the           83.8       0.062
+##  9 Cook Islands                   95         0.151
+## 10 East Timor                     58.6       0.085
+## # ... with 39 more rows</code></pre>
+</div>
+<div id="wrangling-the-data" class="section level2">
+<h2>Wrangling the Data</h2>
+<p>Here, I summarize several statistics found in the joined dataset. First, I grouped the data by region. Then, I made two tables: mean for all statistics by region, and standard deviation for all statistics by region. For the table of means, I arranged by mean agriculture, so I could see how this statistic related to others. I expected it to correlate strongly with income per capita, and while the lowest income per capita was associated with the highest mean agriculture, the rest of the data did not seem to correlate. At the end of this section of code, I made a correlation matrix to see how if the variables associated with each other how I expected, as explained in the introduction. For the most part, my expectations came true. Factors like income per capita and literacy rate were negatively associated with infant mortality, fertility, and prevalence of agriculture in the economy.</p>
+<p>For my own personal interest, I then decided to see just how much agriculture was really still a part of world economies, and in which regions it was most prevalent. I found that only 53 countries had agriculture account for more than 20% of their economy, and of these, 29 are in Sub-saharan Africa. I then took it further, seeing which countries had a majority of their economy accounted by agriculture. To do so, I created a new variable called other_sectors, and then filtered to only keep countries where agriculture was greater than filtered. The result of this was only four countries, all of which are in Sub-saharan Africa.</p>
+<pre class="r"><code>means &lt;- Country_join %&gt;% group_by(Region) %&gt;% summarize(&quot;mean_IMR&quot;=mean(Infant_Mortality_Rate, na.rm = T), &quot;mean_FR&quot;=mean(Fertility_Rate, na.rm = T), &quot;mean_IPC&quot;=mean(National_Income_per_Capita, na.rm = T), &quot;mean_lit&quot;=mean(`Literacy (%)`, na.rm = T), &quot;mean_ag&quot;=mean(Agriculture, na.rm = T)) %&gt;% arrange(mean_ag) 
+
+Country_join %&gt;% group_by(Region) %&gt;% summarize(&quot;sd_IMR&quot;=sd(Infant_Mortality_Rate, na.rm = T), &quot;sd_FR&quot;=sd(Fertility_Rate, na.rm = T), &quot;sd_IPC&quot;=sd(National_Income_per_Capita, na.rm = T), &quot;sd_lit&quot;=sd(`Literacy (%)`, na.rm = T), &quot;sd_ag&quot;=sd(Agriculture, na.rm = T))</code></pre>
+<pre><code>## # A tibble: 7 x 6
+##   Region                     sd_IMR sd_FR sd_IPC sd_lit   sd_ag
+##   &lt;chr&gt;                       &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+## 1 East Asia &amp; Pacific         20.5  1.20   6918. 12.0   0.116  
+## 2 Europe &amp; Central Asia       18.5  0.719 10721.  2.92  0.0852 
+## 3 Latin America &amp; Caribbean   20.0  0.898  3264. 10.4   0.0819 
+## 4 Middle East &amp; North Africa  20.9  1.09   9691. 14.8   0.0648 
+## 5 North America                1.36 0.145  3734.  0.577 0.00693
+## 6 South Asia                  28.1  1.22   1053. 23.9   0.0840 
+## 7 Sub-Saharan Africa          27.7  1.09   1484. 19.1   0.180</code></pre>
+<pre class="r"><code>Country_join %&gt;% filter(Agriculture &gt; 0.20) %&gt;% group_by(Region) %&gt;% summarize(count=n(),&quot;mean_IPC&quot;=mean(National_Income_per_Capita, na.rm=T)) %&gt;% arrange(count)</code></pre>
+<pre><code>## # A tibble: 6 x 3
+##   Region                     count mean_IPC
+##   &lt;chr&gt;                      &lt;int&gt;    &lt;dbl&gt;
+## 1 Middle East &amp; North Africa     1    1257.
+## 2 Latin America &amp; Caribbean      4    1321.
+## 3 South Asia                     4     492.
+## 4 Europe &amp; Central Asia          7    1335.
+## 5 East Asia &amp; Pacific            8    1073.
+## 6 Sub-Saharan Africa            29     405.</code></pre>
+<pre class="r"><code>Country_join %&gt;% mutate(Other_sectors=1-Agriculture) %&gt;% filter(Agriculture&gt;Other_sectors)</code></pre>
+<pre><code>## # A tibble: 4 x 8
+## # Groups:   Country [4]
+##   Country Region Infant_Mortalit~ Fertility_Rate National_Income~ `Literacy (%)`
+##   &lt;chr&gt;   &lt;chr&gt;             &lt;dbl&gt;          &lt;dbl&gt;            &lt;dbl&gt;          &lt;dbl&gt;
+## 1 Congo,~ Sub-S~             113.           6.57             255.           65.5
+## 2 Guinea~ Sub-S~             101.           5.95             286.           42.4
+## 3 Liberia Sub-S~             134.           6.12             219.           57.5
+## 4 Somalia Sub-S~             104.           7.18             NaN            37.8
+## # ... with 2 more variables: Agriculture &lt;dbl&gt;, Other_sectors &lt;dbl&gt;</code></pre>
+<pre class="r"><code>nums &lt;- Country_join %&gt;% na.omit() %&gt;% select_if(is.numeric)
+nums$Country &lt;- NULL
+cor &lt;- cor(nums) %&gt;% as.data.frame
+cor</code></pre>
+<pre><code>##                            Infant_Mortality_Rate Fertility_Rate
+## Infant_Mortality_Rate                  1.0000000      0.8852134
+## Fertility_Rate                         0.8852134      1.0000000
+## National_Income_per_Capita            -0.6190447     -0.5826853
+## Literacy (%)                          -0.8040828     -0.7874867
+## Agriculture                            0.7842110      0.6954353
+##                            National_Income_per_Capita Literacy (%) Agriculture
+## Infant_Mortality_Rate                      -0.6190447   -0.8040828   0.7842110
+## Fertility_Rate                             -0.5826853   -0.7874867   0.6954353
+## National_Income_per_Capita                  1.0000000    0.4456799  -0.5526943
+## Literacy (%)                                0.4456799    1.0000000  -0.6275021
+## Agriculture                                -0.5526943   -0.6275021   1.0000000</code></pre>
+</div>
+<div id="visualization" class="section level2">
+<h2>Visualization</h2>
+<p>Here, I made several plots to help visualize the data. First is a correlation heat map, which shows the associations discussed in “Wrangling the Data.” The color red corresponds to a negative correlation, while purple corresponds to a more positive correlation.</p>
+<p>The second graph I made is a scatterplot which shows the association between income per capita and infant mortality rate. Colors of each point correspond to a different region. A clear trend is shown that the regions with the highest incomes per capita have the lowest infant mortality rates. This is consistent with what was shown in the correlation matrix and heatmap.</p>
+<p>The final plot is a bar graph showing the mean literacy rate for each region. Standard error bars were added to the plot. Again, the bars are colored by region, and these colors correspond to the same regions as those in the scatterplot. An interesting thing to notice here is that regions with the highest literact rates on the bar plot also have the highest income per capita and, therefore, lowest infant mortality rates on the previous scatterplot. This further displays the correlations previously discussed.</p>
+<pre class="r"><code>tidycor &lt;- cor %&gt;% rownames_to_column %&gt;%
+pivot_longer(-1)
+tidycor %&gt;%  ggplot(aes(rowname,name,fill=value))+geom_tile()+
+geom_text(aes(label=round(value,2)))+
+xlab(&quot;&quot;)+ylab(&quot;&quot;) +theme(axis.text.x= element_text(angle=15)) + scale_fill_gradient(low=&quot;red&quot;, high=&quot;purple&quot;) +ggtitle(&quot;Correlation Heatmap&quot;)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data=means, aes(mean_IMR, mean_IPC, color=Region)) + geom_point() + theme_dark() + scale_x_continuous(breaks=seq(10,100, by=10), name=&quot;Infant Mortality Rate (per 1000 live births)&quot;) + scale_y_continuous(name=&quot;Income per Capita&quot;) + ggtitle(&quot;Association of Income per Capita with Infant Mortality Rate&quot;)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(data=Country_join, aes(x=Region,y=`Literacy (%)`, fill=Region)) + geom_bar(stat=&quot;summary&quot;, fun.y=&quot;mean&quot;) + geom_errorbar(stat=&quot;summary&quot;) + theme(axis.text.x=element_text(angle=20)) + ggtitle(&quot;Literacy Rate by Region&quot;)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-5-3.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="principal-component-analysis" class="section level2">
+<h2>Principal Component Analysis</h2>
+<p>When Principal Component Analysis was performed on the dataset, the first principal component accounted for nearly 75% of variance, while the second accounted for about 12%. Because these two account for over 80% of the variance, they are the ones that were kept. Based on loadings, it appears that a higher score on PC1 was correlated with a country that is earlier in development. For PC2, a high score meant a high literacy rate.</p>
+<pre class="r"><code>nums2 &lt;- nums %&gt;% scale
+PCA &lt;- princomp(nums2)
+
+eigval&lt;-PCA$sdev^2
+varprop=round(eigval/sum(eigval), 2)
+summary(PCA, loadings=T)</code></pre>
+<pre><code>## Importance of components:
+##                           Comp.1    Comp.2     Comp.3     Comp.4     Comp.5
+## Standard deviation     1.9280700 0.7679032 0.60277752 0.44610296 0.31245375
+## Proportion of Variance 0.7484146 0.1187161 0.07314939 0.04006516 0.01965478
+## Cumulative Proportion  0.7484146 0.8671307 0.94028007 0.98034522 1.00000000
+## 
+## Loadings:
+##                            Comp.1 Comp.2 Comp.3 Comp.4 Comp.5
+## Infant_Mortality_Rate       0.494  0.111         0.263  0.821
+## Fertility_Rate              0.477  0.167 -0.234  0.650 -0.517
+## National_Income_per_Capita -0.373  0.864  0.277  0.188       
+## Literacy (%)               -0.443 -0.461  0.368  0.666  0.113
+## Agriculture                 0.439         0.856 -0.171 -0.209</code></pre>
+</div>

@@ -1,0 +1,107 @@
+---
+title: "SDS348 Project 1"
+author: "Joshua Garcia"
+date: "3/18/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = "center", warning = F, message = F,
+tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
+```
+
+## Introduction
+
+The two datasets I chose are "country_lit" and "country_MFI," both of which were found on Kaggle. Country_MFI contains infant mortality rate, fertility rate, and national income per capita for every country over the years 1970-2013. It also has the region of each country. Country_lit contains the literacy rates of every country, as well as the percentage of their economy accounted for by agriculture.
+
+Part of the reason I decided to examine these datasets was to see which parts of the world were the most in the early phases of development. I wanted to explore the associations between the variables of each dataset. I expect to see variables like income per capita and literacy rate to be negatively associated with infant mortality, fertility, and agriculture, factors which are indicative of a developing country. 
+
+```{R}
+library(tidyverse)
+library("readxl")
+country_lit <- read_excel("Project1_literacy.xlsx")
+country_MFI <- read_excel("Project1_MFI.xlsx")
+```
+
+
+## Tidying the Data
+
+In the code below, I tidy the dataset country_MFI. First, I pivot the columns that included year and which stat it was measuring into one column, which I then separate into year and stat. Then, I pivot wider so that each stat has its own column. Finally, I take the mean of each country's data across all years, so that there would only be one observation for each country, as it is the joining variable. The name of the new dataset is MFI_tidy. As shown by glimpse, this dataset ended with 217 observations (each country) of five variables, three of which are numeric.
+```{R}
+MFI <- country_MFI %>% pivot_longer(3:143, names_to="year", values_to = "rate") %>% separate("year", into=c("stat","Year"), sep=1) %>% pivot_wider(names_from="stat", values_from="rate") %>% rename("Infant_Mortality_Rate" = m, "Fertility_Rate" = f, "National_Income_per_Capita" = i)
+
+MFI_tidy <- MFI %>% group_by(Country, Region) %>% summarize(Infant_Mortality_Rate = mean(Infant_Mortality_Rate, na.rm=T), Fertility_Rate=mean(Fertility_Rate, na.rm=T), National_Income_per_Capita=mean(National_Income_per_Capita, na.rm=T))
+
+glimpse(MFI_tidy)
+```
+
+## Joining the Datasets
+
+The dataset country_lit did not require tidying, so the two datasets were ready to be joined at this point. I used inner join so that only countries found in both datasets would be put into the new dataset, avoiding a lot of empty data. Then, to figure out how many observations were dropped from each dataset, I used anti join. From MFI_tidy, data for 39 countries was dropped. From country_lit, data for 49 countries was dropped. My final joined dataset had 178 observations, each a different country, and included 6 variables for each country: region, infant mortality rate, fertility rate, income per capita, literacy rate, and proportion of how much the country's economy was taken by the agriculture sector.
+
+```{R}
+Country_join <- MFI_tidy %>% inner_join(country_lit, by="Country")
+glimpse(Country_join)
+
+MFI_tidy %>% anti_join(Country_join, by="Country")
+country_lit %>% anti_join(Country_join, by="Country")
+```
+
+## Wrangling the Data
+
+Here, I summarize several statistics found in the joined dataset. First, I grouped the data by region. Then, I made two tables: mean for all statistics by region, and standard deviation for all statistics by region. For the table of means, I arranged by mean agriculture, so I could see how this statistic related to others. I expected it to correlate strongly with income per capita, and while the lowest income per capita was associated with the highest mean agriculture, the rest of the data did not seem to correlate. At the end of this section of code, I made a correlation matrix to see how if the variables associated with each other how I expected, as explained in the introduction. For the most part, my expectations came true. Factors like income per capita and literacy rate were negatively associated with infant mortality, fertility, and prevalence of agriculture in the economy. 
+
+For my own personal interest, I then decided to see just how much agriculture was really still a part of world economies, and in which regions it was most prevalent. I found that only 53 countries had agriculture account for more than 20% of their economy, and of these, 29 are in Sub-saharan Africa. I then took it further, seeing which countries had a majority of their economy accounted by agriculture. To do so, I created a new variable called other_sectors, and then filtered to only keep countries where agriculture was greater than filtered. The result of this was only four countries, all of which are in Sub-saharan Africa.
+
+```{R}
+means <- Country_join %>% group_by(Region) %>% summarize("mean_IMR"=mean(Infant_Mortality_Rate, na.rm = T), "mean_FR"=mean(Fertility_Rate, na.rm = T), "mean_IPC"=mean(National_Income_per_Capita, na.rm = T), "mean_lit"=mean(`Literacy (%)`, na.rm = T), "mean_ag"=mean(Agriculture, na.rm = T)) %>% arrange(mean_ag) 
+
+Country_join %>% group_by(Region) %>% summarize("sd_IMR"=sd(Infant_Mortality_Rate, na.rm = T), "sd_FR"=sd(Fertility_Rate, na.rm = T), "sd_IPC"=sd(National_Income_per_Capita, na.rm = T), "sd_lit"=sd(`Literacy (%)`, na.rm = T), "sd_ag"=sd(Agriculture, na.rm = T))
+
+Country_join %>% filter(Agriculture > 0.20) %>% group_by(Region) %>% summarize(count=n(),"mean_IPC"=mean(National_Income_per_Capita, na.rm=T)) %>% arrange(count)
+
+Country_join %>% mutate(Other_sectors=1-Agriculture) %>% filter(Agriculture>Other_sectors)
+
+nums <- Country_join %>% na.omit() %>% select_if(is.numeric)
+nums$Country <- NULL
+cor <- cor(nums) %>% as.data.frame
+cor
+```
+
+
+
+## Visualization
+
+Here, I made several plots to help visualize the data. First is a correlation heat map, which shows the associations discussed in "Wrangling the Data." The color red corresponds to a negative correlation, while purple corresponds to a more positive correlation.
+
+The second graph I made is a scatterplot which shows the association between income per capita and infant mortality rate. Colors of each point correspond to a different region. A clear trend is shown that the regions with the highest incomes per capita have the lowest infant mortality rates. This is consistent with what was shown in the correlation matrix and heatmap.
+
+
+The final plot is a bar graph showing the mean literacy rate for each region. Standard error bars were added to the plot. Again, the bars are colored by region, and these colors correspond to the same regions as those in the scatterplot. An interesting thing to notice here is that regions with the highest literact rates on the bar plot also have the highest income per capita and, therefore, lowest infant mortality rates on the previous scatterplot. This further displays the correlations previously discussed.
+
+```{R}
+tidycor <- cor %>% rownames_to_column %>%
+pivot_longer(-1)
+tidycor %>%  ggplot(aes(rowname,name,fill=value))+geom_tile()+
+geom_text(aes(label=round(value,2)))+
+xlab("")+ylab("") +theme(axis.text.x= element_text(angle=15)) + scale_fill_gradient(low="red", high="purple") +ggtitle("Correlation Heatmap")
+
+ggplot(data=means, aes(mean_IMR, mean_IPC, color=Region)) + geom_point() + theme_dark() + scale_x_continuous(breaks=seq(10,100, by=10), name="Infant Mortality Rate (per 1000 live births)") + scale_y_continuous(name="Income per Capita") + ggtitle("Association of Income per Capita with Infant Mortality Rate")
+
+ggplot(data=Country_join, aes(x=Region,y=`Literacy (%)`, fill=Region)) + geom_bar(stat="summary", fun.y="mean") + geom_errorbar(stat="summary") + theme(axis.text.x=element_text(angle=20)) + ggtitle("Literacy Rate by Region")
+```
+
+## Principal Component Analysis
+
+When Principal Component Analysis was performed on the dataset, the first principal component accounted for nearly 75% of variance, while the second accounted for about 12%. Because these two account for over 80% of the variance, they are the ones that were kept. Based on loadings, it appears that a higher score on PC1 was correlated with a country that is earlier in development. For PC2, a high score meant a high literacy rate. 
+
+```{R}
+nums2 <- nums %>% scale
+PCA <- princomp(nums2)
+
+eigval<-PCA$sdev^2
+varprop=round(eigval/sum(eigval), 2)
+summary(PCA, loadings=T)
+```

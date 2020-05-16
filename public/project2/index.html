@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Joshua Garcia" />
+    <meta name="description" content="Describe your website">
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico">
+    <title>SDS348 Project 2</title>
+    <meta name="generator" content="Hugo 0.70.0" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="/css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="/blog/">BLOG</a></li>
+        
+        <li><a href="/projects/">PROJECTS</a></li>
+        
+        <li><a href="/resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="/project2/">SDS348 Project 2</a></strong>
+          </h3>
+        </div>
+        <div class="blog-title">
+          <h4>
+          January 1, 0001
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>This dataset contains information about 303 patients and is focused on conditions of the heart. The variables analyzed were age, sex (1=male, 2=female), cp(chest pain, 0=asymptomatic, 1=atypical angina, 2=non-anginal pain, 3=typical angina), fbs (fasting blood sugar, 1= &gt;120 mg/dl, 0= &lt;120mg/dl), restecg (resting electrocardiographic results, 0=left ventricular hypertrophy, 1=normal, 2=ST-T wave abnormality), exang (exercised enduced angina, 1=yes, 0=no), and finally, target (1=disease, 0=no disease). I altered the dataset some before analysis, first switching the 1 and 0 values of target, as 1 initially corresponded to ‘no disease’, which is counterintuitive. I then removed several variables I found difficult to understand.</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;tidyverse&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## -- Attaching packages ---------------------------------------------------------- tidyverse 1.3.0 --</code></pre>
+<pre><code>## v ggplot2 3.3.0     v purrr   0.3.3
+## v tibble  3.0.0     v dplyr   0.8.5
+## v tidyr   1.0.2     v stringr 1.4.0
+## v readr   1.3.1     v forcats 0.5.0</code></pre>
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;tibble&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;tidyr&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;readr&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;purrr&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;stringr&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Warning: package &#39;forcats&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------------------------- tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>heart = read.csv(&quot;heart.csv&quot;)
+heart &lt;- heart %&gt;%
+      mutate(target = ifelse(target == 1,0,1))
+heart$age &lt;- heart$ï..age
+heart$ï..age &lt;- NULL
+heart$oldpeak &lt;- NULL
+heart$slope &lt;- NULL
+heart$ca &lt;- NULL
+heart$thal &lt;- NULL
+heart$sex &lt;- as.factor(heart$sex)
+heart$cp &lt;- as.factor(heart$cp)
+heart$fbs &lt;- as.factor(heart$fbs)
+heart$restecg &lt;- as.factor(heart$restecg)
+heart$exang &lt;- as.factor(heart$exang)
+heart$target &lt;- as.factor(heart$target)
+glimpse(heart)</code></pre>
+<pre><code>## Rows: 303
+## Columns: 10
+## $ sex      &lt;fct&gt; 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0...
+## $ cp       &lt;fct&gt; 3, 2, 1, 1, 0, 0, 1, 1, 2, 2, 0, 2, 1, 3, 3, 2, 2, 3, 0, 3...
+## $ trestbps &lt;int&gt; 145, 130, 130, 120, 120, 140, 140, 120, 172, 150, 140, 130...
+## $ chol     &lt;int&gt; 233, 250, 204, 236, 354, 192, 294, 263, 199, 168, 239, 275...
+## $ fbs      &lt;fct&gt; 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0...
+## $ restecg  &lt;fct&gt; 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1...
+## $ thalach  &lt;int&gt; 150, 187, 172, 178, 163, 148, 153, 173, 162, 174, 160, 139...
+## $ exang    &lt;fct&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0...
+## $ target   &lt;fct&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0...
+## $ age      &lt;int&gt; 63, 37, 41, 56, 57, 57, 56, 44, 52, 57, 54, 48, 49, 64, 58...</code></pre>
+</div>
+<div id="manova-testing" class="section level2">
+<h2>MANOVA Testing</h2>
+<p>First, I perform a MANOVA test to see if any of my numeric variables (age, trestbps, chol, thalach) differ by a patient’s resting electrocardiographic results. This test showed that at least one variable showed a significant difference, so I followed up with 4 ANOVA tests. I used an alpha value of .01 to determine significance of these tests, as I had done 5 tests up to this point. Based on this alpha value, only cholesterol had a significant difference between groups. I then followed up with post-hoc t-test analysis of cholesterol based on restecg group. Using an alpha value of 0.00625, as I had run 8 tests at this point, there was a significant difference between the 0 and 1 groups of restecg, corresponding to left ventricular hypertrophy and normal, respectively. Without bonferroni adjustment, the probability of a type I error would have been 33.66%. MANOVA testing has many assumptions to meet, so it is unlikely that all were met.</p>
+<pre class="r"><code>man&lt;-manova(cbind(age,trestbps,chol,thalach)~restecg, data=heart)
+summary(man)</code></pre>
+<pre><code>##            Df   Pillai approx F num Df den Df   Pr(&gt;F)   
+## restecg     2 0.072917    2.819      8    596 0.004479 **
+## Residuals 300                                            
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>anova &lt;- aov(man)
+summary(anova)</code></pre>
+<pre><code>##  Response age :
+##              Df  Sum Sq Mean Sq F value  Pr(&gt;F)  
+## restecg       2   752.8  376.42  4.6746 0.01002 *
+## Residuals   300 24157.5   80.52                  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response trestbps :
+##              Df Sum Sq Mean Sq F value  Pr(&gt;F)  
+## restecg       2   2159 1079.44  3.5691 0.02938 *
+## Residuals   300  90732  302.44                  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response chol :
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## restecg       2  24844 12422.1  4.7385 0.009417 **
+## Residuals   300 786457  2621.5                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response thalach :
+##              Df Sum Sq Mean Sq F value Pr(&gt;F)  
+## restecg       2   3544 1772.02  3.4319 0.0336 *
+## Residuals   300 154899  516.33                 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>.05/5</code></pre>
+<pre><code>## [1] 0.01</code></pre>
+<pre class="r"><code>pairwise.t.test(heart$chol, heart$restecg, p.adj=&#39;none&#39;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  heart$chol and heart$restecg 
+## 
+##   0      1     
+## 1 0.0028 -     
+## 2 0.7992 0.3460
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>.05/8</code></pre>
+<pre><code>## [1] 0.00625</code></pre>
+<pre class="r"><code>1-(.95^8)</code></pre>
+<pre><code>## [1] 0.3365796</code></pre>
+<p>##Randomization Test</p>
+<p>Here I ran a Monte Carlo sampling test to assess the association between ‘chol’ and ‘target.’ The null hypothesis for the test is that cholesterol levels are the same in patients regardless of presence of heart disease; the alternative hypothesis is that cholesterol levels are different between the two groups. The determined p-value from the randomization test was 0.136, so the null hypothesis could not be rejected. This means that cholesterol level was the same between the disease and no disease groups, which was an unexpected result.</p>
+<pre class="r"><code>heart %&gt;% group_by(target) %&gt;% summarize(mean=mean(chol)) %&gt;% summarize(meandiff = diff(mean))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   meandiff
+##      &lt;dbl&gt;
+## 1     8.86</code></pre>
+<pre class="r"><code>randtest &lt;- vector()
+
+for (i in 1:5000){
+  new &lt;- data.frame(chol=sample(heart$chol), target = heart$target)
+  randtest[i] &lt;- mean(new[new$target == 1,]$chol)-mean(new[new$target == 0,]$chol)
+}
+
+mean(randtest&gt;8.857)*2 #pvalue</code></pre>
+<pre><code>## [1] 0.1432</code></pre>
+<pre class="r"><code>hist(randtest,main=&quot;&quot;,ylab=&quot;&quot;); abline(v = -8.857,col=&quot;red&quot;) #nulldistribution</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="linear-regression" class="section level2">
+<h2>Linear Regression</h2>
+<p>Here, I ran a linear regression predicting resting systolic blood pressure based on patient age and presence of heart disease, including interaction. The intercept for the model(130.1724) is the resting blood pressure when the patient does not have heart disease and is the mean age. The target 1 coefficient means that the mean resting blood pressure for a patient with heart disease is 2.9628 mmHg higher than a patient without. The centage coefficient means that the average resting blood pressure increases by 0.4651 mmHg for each one year increase in age. The coefficient for target1:centage means that for a patient with heart disease, there is an additional resting BP increase of 0.1001 mmHg for each year of age. Based on the scatterplot, shapiro-wilk test, and breusch pagan test, it appears that the violations of linearity, normality, and heteroskedasticity were all violated. I then used robust standard errors to check regression results. Based on this, age had a significant effect on resting blood pressure, but interestingly, presence of heart disease did not. The interaction between the two predictors was also insignificant. The significance results between the initial regression summary and the robust standard errors summary were the same. The proportion of variance in resting blood pressure explained by this model is 0.0765.</p>
+<pre class="r"><code>library(sandwich)</code></pre>
+<pre><code>## Warning: package &#39;sandwich&#39; was built under R version 3.6.3</code></pre>
+<pre class="r"><code>library(lmtest)</code></pre>
+<pre><code>## Warning: package &#39;lmtest&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Loading required package: zoo</code></pre>
+<pre><code>## Warning: package &#39;zoo&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## 
+## Attaching package: &#39;zoo&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     as.Date, as.Date.numeric</code></pre>
+<pre class="r"><code>heart$centage &lt;- heart$age-mean(heart$age) #centerdata
+
+fit &lt;- lm(trestbps~target*centage, data=heart)#linearregression
+summary(fit)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = trestbps ~ target * centage, data = heart)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -40.276 -10.932  -1.146  10.208  65.941 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)     130.1724     1.3371  97.354  &lt; 2e-16 ***
+## target1           2.9628     2.0024   1.480 0.140021    
+## centage           0.4651     0.1378   3.375 0.000835 ***
+## target1:centage   0.1001     0.2274   0.440 0.659935    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 16.85 on 299 degrees of freedom
+## Multiple R-squared:  0.08571,    Adjusted R-squared:  0.07653 
+## F-statistic: 9.343 on 3 and 299 DF,  p-value: 6.373e-06</code></pre>
+<pre class="r"><code>ggplot(heart, aes(x=centage, y=trestbps,group=target))+
+  geom_point(aes(color=target))+geom_smooth(method=&#39;lm&#39;,se=F,aes(color=target)) #plotregression</code></pre>
+<pre><code>## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>resids &lt;- fit$residuals
+fitvals &lt;- fit$fitted.values
+
+shapiro.test(resids) #testnormality</code></pre>
+<pre><code>## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resids
+## W = 0.98157, p-value = 0.0006139</code></pre>
+<pre class="r"><code>bptest(fit)#testhomoskedasticity</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit
+## BP = 8.8821, df = 3, p-value = 0.0309</code></pre>
+<pre class="r"><code>coeftest(fit, vcov=vcovHC(fit))#robustse</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##                  Estimate Std. Error t value  Pr(&gt;|t|)    
+## (Intercept)     130.17242    1.32294 98.3964 &lt; 2.2e-16 ***
+## target1           2.96281    2.02619  1.4623 0.1447215    
+## centage           0.46507    0.13649  3.4073 0.0007461 ***
+## target1:centage   0.10014    0.22026  0.4546 0.6497017    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+</div>
+<div id="bootstrap-standard-errors" class="section level2">
+<h2>Bootstrap Standard Errors</h2>
+<p>There is very little change in standard errors when using bootstrap versus the the original standard errors and robust standard errors, so it is unlikely that the p-values would be altered enough to change the significance of the results.</p>
+<pre class="r"><code>set.seed(1234)
+
+resids_resamp&lt;-replicate(5000, {
+new_resids&lt;-sample(resids,replace=T)
+heart$new_y &lt;- fitvals+new_resids
+fit2&lt;-lm(new_y ~ target * centage, data=heart)
+coef(fit2)
+})
+
+resids_resamp%&gt;%t%&gt;%as.data.frame%&gt;%summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)  target1   centage target1:centage
+## 1     1.32646 2.010762 0.1360787       0.2290462</code></pre>
+</div>
+<div id="logistic-regression" class="section level2">
+<h2>Logistic Regression</h2>
+<p>In this part of the analysis, I ran a logistic regression to assess whether patient disease group (target) could be predicted by cholesterol level (chol) and maximum heart rate achieved (thalach). When controlling for maximum heart rate achieved, for every one unit that cholesterol increases by, the odds of heart disease increase by e^0.0038. When controlling for cholesterol, for every one unit increase in maximum heart rate achieved, the odds of heart disease decrease by e^-0.0443. I then created a confusion matrix to determine how well the model worked. Based on the confusion matrix, accuracy was 0.703, sensitivity was 0.594, specificity was 0.794, and precision was 0.707. Overall these values are decent, but definitely not great. <em>I would like to note here that I spent a good amount of time attempting to generate a ROC curve but could not get it to work. I left the code anyways!</em> I then performed 10-fold cross-validation on the model, which showed an accuracy of 0.703, sensitivity of 0.588, and recall of 0.701.</p>
+<pre class="r"><code>logfit &lt;- glm(target~chol+thalach, family=binomial, data=heart) #logisticregression
+coeftest(logfit)</code></pre>
+<pre><code>## 
+## z test of coefficients:
+## 
+##               Estimate Std. Error z value  Pr(&gt;|z|)    
+## (Intercept)  5.5067702  1.1278853  4.8824 1.048e-06 ***
+## chol         0.0038046  0.0024246  1.5692    0.1166    
+## thalach     -0.0443423  0.0065879 -6.7308 1.687e-11 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>probs &lt;- predict(logfit, type=&#39;response&#39;)
+conf &lt;- table(predict=as.numeric(probs&gt;.5),truth=heart$target)%&gt;%addmargins #confusionmatrix
+conf</code></pre>
+<pre><code>##        truth
+## predict   0   1 Sum
+##     0   131  56 187
+##     1    34  82 116
+##     Sum 165 138 303</code></pre>
+<pre class="r"><code>82/138 #TPR/Sensitivity</code></pre>
+<pre><code>## [1] 0.5942029</code></pre>
+<pre class="r"><code>131/165 #TNR/Specificity</code></pre>
+<pre><code>## [1] 0.7939394</code></pre>
+<pre class="r"><code>82/116 #PPV/Precision</code></pre>
+<pre><code>## [1] 0.7068966</code></pre>
+<pre class="r"><code>213/303 #Accuracy</code></pre>
+<pre><code>## [1] 0.7029703</code></pre>
+<pre class="r"><code>heart$logit&lt;-predict(logfit,type=&quot;link&quot;)
+heart%&gt;%ggplot()+geom_density(aes(logit,color=target,fill=target),alpha=0.4) #densityplot</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>library(plotROC)</code></pre>
+<pre><code>## Warning: package &#39;plotROC&#39; was built under R version 3.6.3</code></pre>
+<pre class="r"><code>heart &lt;- heart %&gt;% mutate(prob=predict(logfit,type=&#39;response&#39;))
+ROCplot &lt;- ggplot(heart)+geom_roc(aes(d=target,m=prob), n.cuts=0)
+ROCplot</code></pre>
+<p><img src="/project2_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group AUC
+## 1     1     1  NA
+## 2     1     2  NA</code></pre>
+<pre class="r"><code>class_diag &lt;- function(probs,truth){
+#CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),truth)
+acc=sum(diag(tab))/sum(tab)
+sens=tab[2,2]/colSums(tab)[2]
+spec=tab[1,1]/colSums(tab)[1]
+ppv=tab[2,2]/rowSums(tab)[2]
+if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1
+#CALCULATE EXACT AUC
+ord&lt;-order(probs, decreasing=TRUE)
+probs &lt;- probs[ord]; truth &lt;- truth[ord]
+TPR=cumsum(truth)/max(1,sum(truth))
+FPR=cumsum(!truth)/max(1,sum(!truth))
+dup&lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+TPR&lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1)
+n &lt;- length(TPR)
+auc&lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+data.frame(acc,sens,spec,ppv,auc)
+} 
+
+set.seed(1234)
+k=10
+data&lt;-heart[sample(nrow(heart)),] 
+folds&lt;-cut(seq(1:nrow(heart)),breaks=k,labels=F) #create folds
+diags&lt;-NULL
+for(i in 1:k){
+train&lt;-data[folds!=i,]
+test&lt;-data[folds==i,]
+truth&lt;-test$target 
+fit2&lt;-glm(target~chol+thalach,data=train,family=&quot;binomial&quot;)
+probs2&lt;-predict(fit2,newdata = test,type=&quot;response&quot;)
+diags&lt;-rbind(diags,class_diag(probs2,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.6998925 0.5948281 0.7730933 0.6865801 0.7414944</code></pre>
+</div>
+<div id="lasso-regression" class="section level2">
+<h2>Lasso Regression</h2>
+<p>Finally, I ran a Lasso Regression to predict ‘target.’ The variables that were retained after regression were age, sex, cp, trestbps, restecg, and exang (meaning chol, fbs, and thalach were dropped). I then ran another 10-fold cross validation with only these variables to predict target. This resulted in an accuracy of 0.772 and auc of 0.852, which shows that this model worked quite a bit better at prediciting whether or not a patient had heart disease than the first 10-fold CV using only chol and thalach.</p>
+<pre class="r"><code>library(glmnet)</code></pre>
+<pre><code>## Warning: package &#39;glmnet&#39; was built under R version 3.6.3</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Matrix&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
+## 
+##     expand, pack, unpack</code></pre>
+<pre><code>## Loaded glmnet 3.0-2</code></pre>
+<pre class="r"><code>y &lt;- as.matrix(heart$target)
+x &lt;- model.matrix(target~., data=heart)[,-1]
+x &lt;- scale(x)
+
+cv &lt;- cv.glmnet(x,y,family=&#39;binomial&#39;)
+lasso &lt;- glmnet(x,y,family=&#39;binomial&#39;,lambda=cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 16 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                       s0
+## (Intercept) -0.202236619
+## sex1         0.405999013
+## cp1         -0.259565319
+## cp2         -0.396151045
+## cp3         -0.082463799
+## trestbps     0.072851545
+## chol         .          
+## fbs1         .          
+## restecg1    -0.043887335
+## restecg2     .          
+## thalach      .          
+## exang1       0.386406598
+## age          0.041849909
+## centage      0.001536617
+## logit        0.536516173
+## prob         .</code></pre>
+<pre class="r"><code>set.seed(1234)
+k=10
+data&lt;-heart[sample(nrow(heart)),] 
+folds&lt;-cut(seq(1:nrow(heart)),breaks=k,labels=F) #create folds
+diags&lt;-NULL
+for(i in 1:k){
+train&lt;-data[folds!=i,]
+test&lt;-data[folds==i,]
+truth&lt;-test$target 
+fit2&lt;-glm(target~age+sex+cp+trestbps+restecg+exang,data=train,family=&quot;binomial&quot;)
+probs2&lt;-predict(fit2,newdata = test,type=&quot;response&quot;)
+diags&lt;-rbind(diags,class_diag(probs2,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7754839 0.7466929 0.7989276 0.7564481 0.8473241</code></pre>
+</div>
+
+              <hr>
+              <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div>
+            </div>
+          </div>
+          <hr>
+        <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+        </div>
+      </div>
+      
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/docs.min.js"></script>
+<script src="/js/main.js"></script>
+
+<script src="/js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>
